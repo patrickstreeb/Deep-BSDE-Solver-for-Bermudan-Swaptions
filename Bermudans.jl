@@ -13,7 +13,7 @@ function createModel()
     return model
 end
 
-
+# model = createModel()
 
 
 
@@ -28,7 +28,6 @@ function sobol_brownian_increments(
     n_times::Int,  # without zero
     )
 
-
     seq = DiffFusion.SobolSeq(n_states * n_times)
     seq = skip(seq, n_paths)
     U = zeros(n_states, n_paths, n_times)
@@ -39,7 +38,6 @@ function sobol_brownian_increments(
     U = U .- reshape(m, (n_states,1,n_times)) .+ 0.5
     return quantile.(Normal(), U)
 end
-
 
 
 function createSimulation()
@@ -59,7 +57,7 @@ function createSimulation()
     return sim, sim.X
 end
 
-sim, X = createSimulation()
+# sim, X = createSimulation()
 
 
 
@@ -102,102 +100,7 @@ function createPath()
     return DiffFusion.path(sim, ts_list, context, DiffFusion.LinearPathInterpolation)
 end
 
-path = createPath()
-
-
-
-fixed_flows = [
-    DiffFusion.FixedRateCoupon( 1.0, 0.02, 1.0),
-    DiffFusion.FixedRateCoupon( 2.0, 0.02, 1.0),
-    DiffFusion.FixedRateCoupon( 3.0, 0.02, 1.0),
-    DiffFusion.FixedRateCoupon( 4.0, 0.02, 1.0),
-    DiffFusion.FixedRateCoupon( 5.0, 0.02, 1.0),
-    DiffFusion.FixedRateCoupon( 6.0, 0.02, 1.0),
-    DiffFusion.FixedRateCoupon( 7.0, 0.02, 1.0),
-    DiffFusion.FixedRateCoupon( 8.0, 0.02, 1.0),
-    DiffFusion.FixedRateCoupon( 9.0, 0.02, 1.0),
-    DiffFusion.FixedRateCoupon(10.0, 0.02, 1.0),
-];
-
-libor_flows = [
-    DiffFusion.SimpleRateCoupon(0.0, 0.0, 0.5, 0.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(0.5, 0.5, 1.0, 1.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(1.0, 1.0, 1.5, 1.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(1.5, 1.5, 2.0, 2.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(2.0, 2.0, 2.5, 2.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(2.5, 2.5, 3.0, 3.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(3.0, 3.0, 3.5, 3.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(3.5, 3.5, 4.0, 4.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(4.0, 4.0, 4.5, 4.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(4.5, 4.5, 5.0, 5.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(5.0, 5.0, 5.5, 5.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(5.5, 5.5, 6.0, 6.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(6.0, 6.0, 6.5, 6.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(6.5, 6.5, 7.0, 7.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(7.0, 7.0, 7.5, 7.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(7.5, 7.5, 8.0, 8.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(8.0, 8.0, 8.5, 8.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(8.5, 8.5, 9.0, 9.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(9.0, 9.0, 9.5, 9.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-    DiffFusion.SimpleRateCoupon(9.5, 9.5, 10.0, 10.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
-];
-    
-
-fixed_notionals = 10_000.00 * ones(length(fixed_flows))
-fixed_leg = DiffFusion.cashflow_leg(
-    "leg/1", fixed_flows, fixed_notionals, "EUR:ESTR", nothing,  1.0,
-)
-
-libor_notionals = 10_000.00 * ones(length(libor_flows))
-libor_leg = DiffFusion.cashflow_leg(
-    "leg/2", libor_flows, libor_notionals, "EUR:ESTR", nothing,  -1.0
-);
-
-
-make_regression_variables(t) = [ DiffFusion.LiborRate(t, t, 10.0, "EUR:EURIBOR6M"), ]
-
-swap_2y_10y = [
-    DiffFusion.cashflow_leg("leg/fixed/2y-10y",fixed_flows[3:end], fixed_notionals[3:end], "EUR:ESTR", nothing,  1.0),  # receiver
-    DiffFusion.cashflow_leg("leg/libor/2y-10y",libor_flows[5:end], libor_notionals[5:end], "EUR:ESTR", nothing, -1.0),  # payer
-]
-
-
-swap_4y_10y = [
-    DiffFusion.cashflow_leg("leg/fixed/4y-10y",fixed_flows[5:end], fixed_notionals[5:end], "EUR:ESTR", nothing,  1.0),  # receiver
-    DiffFusion.cashflow_leg("leg/libor/4y-10y",libor_flows[9:end], libor_notionals[9:end], "EUR:ESTR", nothing, -1.0),  # payer
-]
-
-swap_6y_10y = [
-    DiffFusion.cashflow_leg("leg/fixed/6y-10y",fixed_flows[7:end], fixed_notionals[7:end], "EUR:ESTR", nothing,  1.0),  # receiver
-    DiffFusion.cashflow_leg("leg/libor/6y-10y",libor_flows[13:end], libor_notionals[13:end], "EUR:ESTR", nothing, -1.0),  # payer
-]
-
-swap_8y_10y = [
-    DiffFusion.cashflow_leg("leg/fixed/6y-10y",fixed_flows[9:end], fixed_notionals[9:end], "EUR:ESTR", nothing,  1.0),  # receiver
-    DiffFusion.cashflow_leg("leg/libor/6y-10y",libor_flows[17:end], libor_notionals[17:end], "EUR:ESTR", nothing, -1.0),  # payer
-];
-    
-
-exercise_2y = DiffFusion.bermudan_exercise(2.0, swap_2y_10y, make_regression_variables)
-exercise_4y = DiffFusion.bermudan_exercise(4.0, swap_4y_10y, make_regression_variables)
-exercise_6y = DiffFusion.bermudan_exercise(6.0, swap_6y_10y, make_regression_variables)
-exercise_8y = DiffFusion.bermudan_exercise(8.0, swap_8y_10y, make_regression_variables);
-
-bermudanExercises = [ exercise_2y, exercise_4y, exercise_6y, exercise_8y, ]
-
-
-
-berm = DiffFusion.bermudan_swaption_leg(
-    "berm/10-nc-2",
-    bermudanExercises,
-    # [ exercise_2y, ],
-    1.0, # long option
-    "", # default discounting (curve key)
-    make_regression_variables,
-    nothing, # path
-    nothing, # make_regression
-);
-
+# path = createPath()
 
 
 
@@ -216,10 +119,6 @@ end
 optionValue(berm, 0)
 
 
-
-
-
-
 # neural network with input dimension and amount of layer parameters
 # push! is used to connect layers to a network
 function buildNeuralNetwork(input_dim::Int, layer_dim::Int)
@@ -233,10 +132,6 @@ function buildNeuralNetwork(input_dim::Int, layer_dim::Int)
     push!(layers, Dense(20, 1; init = Flux.glorot_uniform)) 
     return Chain(layers...)
 end
-
-
-
-
 
 
 
@@ -287,7 +182,6 @@ function penalty(
     return empirical_variance
 
 end
-
 
 model = createModel()
 n_paths = size(X[1,:,1])[1]
@@ -474,7 +368,11 @@ function BSDE_cashflows(
     T = sim.times[end]  # maturity
     h = sim.times[2] -sim.times[1] # step size (if equidistant)
     N = Int(T / h) # effective time steps
-    inkr = randn(S, N + 1) * sqrt(h) # Increments for simulations
+    inkr = sobol_brownian_increments(
+        length(DiffFusion.state_alias(model)),
+        S,
+        length(sim.times),
+    ) # Increments for simulations
 
 
     if obs_time < leg.bermudan_exercises[begin].exercise_time
@@ -523,6 +421,114 @@ function BSDE_cashflows(
     end
     return [ Pay(berm, obs_time) ]
 end
+
+
+
+
+
+
+
+
+
+
+
+
+# Product Septup
+fixed_flows = [
+    DiffFusion.FixedRateCoupon( 1.0, 0.02, 1.0),
+    DiffFusion.FixedRateCoupon( 2.0, 0.02, 1.0),
+    DiffFusion.FixedRateCoupon( 3.0, 0.02, 1.0),
+    DiffFusion.FixedRateCoupon( 4.0, 0.02, 1.0),
+    DiffFusion.FixedRateCoupon( 5.0, 0.02, 1.0),
+    DiffFusion.FixedRateCoupon( 6.0, 0.02, 1.0),
+    DiffFusion.FixedRateCoupon( 7.0, 0.02, 1.0),
+    DiffFusion.FixedRateCoupon( 8.0, 0.02, 1.0),
+    DiffFusion.FixedRateCoupon( 9.0, 0.02, 1.0),
+    DiffFusion.FixedRateCoupon(10.0, 0.02, 1.0),
+];
+
+libor_flows = [
+    DiffFusion.SimpleRateCoupon(0.0, 0.0, 0.5, 0.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(0.5, 0.5, 1.0, 1.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(1.0, 1.0, 1.5, 1.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(1.5, 1.5, 2.0, 2.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(2.0, 2.0, 2.5, 2.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(2.5, 2.5, 3.0, 3.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(3.0, 3.0, 3.5, 3.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(3.5, 3.5, 4.0, 4.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(4.0, 4.0, 4.5, 4.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(4.5, 4.5, 5.0, 5.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(5.0, 5.0, 5.5, 5.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(5.5, 5.5, 6.0, 6.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(6.0, 6.0, 6.5, 6.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(6.5, 6.5, 7.0, 7.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(7.0, 7.0, 7.5, 7.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(7.5, 7.5, 8.0, 8.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(8.0, 8.0, 8.5, 8.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(8.5, 8.5, 9.0, 9.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(9.0, 9.0, 9.5, 9.5, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+    DiffFusion.SimpleRateCoupon(9.5, 9.5, 10.0, 10.0, 0.5, "EUR:EURIBOR6M", nothing, nothing),
+];
+    
+
+fixed_notionals = 10_000.00 * ones(length(fixed_flows))
+fixed_leg = DiffFusion.cashflow_leg(
+    "leg/1", fixed_flows, fixed_notionals, "EUR:ESTR", nothing,  1.0,
+)
+
+libor_notionals = 10_000.00 * ones(length(libor_flows))
+libor_leg = DiffFusion.cashflow_leg(
+    "leg/2", libor_flows, libor_notionals, "EUR:ESTR", nothing,  -1.0
+);
+
+
+make_regression_variables(t) = [ DiffFusion.LiborRate(t, t, 10.0, "EUR:EURIBOR6M"), ]
+
+swap_2y_10y = [
+    DiffFusion.cashflow_leg("leg/fixed/2y-10y",fixed_flows[3:end], fixed_notionals[3:end], "EUR:ESTR", nothing,  1.0),  # receiver
+    DiffFusion.cashflow_leg("leg/libor/2y-10y",libor_flows[5:end], libor_notionals[5:end], "EUR:ESTR", nothing, -1.0),  # payer
+]
+
+
+swap_4y_10y = [
+    DiffFusion.cashflow_leg("leg/fixed/4y-10y",fixed_flows[5:end], fixed_notionals[5:end], "EUR:ESTR", nothing,  1.0),  # receiver
+    DiffFusion.cashflow_leg("leg/libor/4y-10y",libor_flows[9:end], libor_notionals[9:end], "EUR:ESTR", nothing, -1.0),  # payer
+]
+
+swap_6y_10y = [
+    DiffFusion.cashflow_leg("leg/fixed/6y-10y",fixed_flows[7:end], fixed_notionals[7:end], "EUR:ESTR", nothing,  1.0),  # receiver
+    DiffFusion.cashflow_leg("leg/libor/6y-10y",libor_flows[13:end], libor_notionals[13:end], "EUR:ESTR", nothing, -1.0),  # payer
+]
+
+swap_8y_10y = [
+    DiffFusion.cashflow_leg("leg/fixed/6y-10y",fixed_flows[9:end], fixed_notionals[9:end], "EUR:ESTR", nothing,  1.0),  # receiver
+    DiffFusion.cashflow_leg("leg/libor/6y-10y",libor_flows[17:end], libor_notionals[17:end], "EUR:ESTR", nothing, -1.0),  # payer
+];
+    
+
+exercise_2y = DiffFusion.bermudan_exercise(2.0, swap_2y_10y, make_regression_variables)
+exercise_4y = DiffFusion.bermudan_exercise(4.0, swap_4y_10y, make_regression_variables)
+exercise_6y = DiffFusion.bermudan_exercise(6.0, swap_6y_10y, make_regression_variables)
+exercise_8y = DiffFusion.bermudan_exercise(8.0, swap_8y_10y, make_regression_variables);
+
+bermudanExercises = [ exercise_2y, exercise_4y, exercise_6y, exercise_8y, ]
+
+
+
+berm = DiffFusion.bermudan_swaption_leg(
+    "berm/10-nc-2",
+    bermudanExercises,
+    # [ exercise_2y, ],
+    1.0, # long option
+    "", # default discounting (curve key)
+    make_regression_variables,
+    nothing, # path
+    nothing, # make_regression
+);
+
+
+
+
 
 
 

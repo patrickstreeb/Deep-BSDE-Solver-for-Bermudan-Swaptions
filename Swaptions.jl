@@ -1,4 +1,3 @@
-
 using Random, Optim, Distributions, DiffFusion, Plots, Interpolations, Flux, LinearAlgebra, Zygote
 
 # Gaussian HJM Model
@@ -12,7 +11,7 @@ values = [ 50.,  60.,  70.,  80., ]' * 1.0e-4
 
 model = DiffFusion.gaussian_hjm_model("md/EUR", δ, χ, σ, ch, nothing);
 
-DiffFusion.Sigma_T()
+
 
 # Simulation
 times = 0.0:0.25:10.0
@@ -27,7 +26,13 @@ sim = DiffFusion.simple_simulation(
     brownian_increments = DiffFusion.sobol_brownian_increments,
 );
 
+X= sim.X 
+
 DiffFusion.state_alias(model)
+
+# DiffFusion.Sigma_T(model, 0, 1, nothing)
+
+
 
 yc_estr = DiffFusion.zero_curve(
     "yc/EUR:ESTR",
