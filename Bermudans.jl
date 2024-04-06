@@ -13,9 +13,6 @@ function createModel()
     return model
 end
 
-# model = createModel()
-
-
 
 # simulation: state variable sim.X[1,:,:] and integrated state variable sim.X[2,:,:]
 # second argument for number of paths (number_of_paths), third argument for simulation 
@@ -57,9 +54,6 @@ function createSimulation()
     return sim, sim.X
 end
 
-# sim, X = createSimulation()
-
-
 
 
 function createPath()
@@ -100,9 +94,6 @@ function createPath()
     return DiffFusion.path(sim, ts_list, context, DiffFusion.LinearPathInterpolation)
 end
 
-# path = createPath()
-
-
 
 #option value to time obs_time over all paths of a swaption leg
 function optionValue(
@@ -110,29 +101,39 @@ function optionValue(
     obs_time
     )
 
+    path = createPath() 
     swaptionPayoff = DiffFusion.discounted_cashflows(leg, obs_time)[1]
     values = DiffFusion.at(swaptionPayoff, path)
-    return values
 
+    return values
 end
 
-optionValue(berm, 0)
 
+# neural network as set up in the thesis
+# d0 = input_dim
+# d = ouput dim
+# l = amount_of_layers (=length(m) therefore omitted)
+# m = hidden_layer_dims
 
-# neural network with input dimension and amount of layer parameters
-# push! is used to connect layers to a network
-function buildNeuralNetwork(input_dim::Int, layer_dim::Int)
+function buildNeuralNetwork(
+    input_dim::Int, 
+    output_dim::Int,
+    hidden_layer_dims::Vector{Int}
+    )
+
     layers = []
-    for _ in 1:layer_dim
-        push!(layers, Dense(input_dim, 20, relu; init = Flux.glorot_uniform))
-        BatchNorm(20)
-        push!(layers, Dense(20, 20, relu; init = Flux.glorot_uniform))
-        input_dim = 20 
-    end
-    push!(layers, Dense(20, 1; init = Flux.glorot_uniform)) 
+    current_dim = input_dim
+
+    for i in 1:length(hidden_layer_dims)
+        push!(layers, Dense(current_dim, hidden_layer_dims[i], relu; init = Flux.glorot_uniform))
+        push!(layers, BatchNorm(hidden_layer_dims[i], relu))
+        current_dim = hidden_layer_dims[i]
+    end   
+
+    push!(layers, Dense(current_dim, output_dim; init = Flux.glorot_uniform))
+
     return Chain(layers...)
 end
-
 
 
 # discretized BSDE starting at final value uN calculated as optionValue()
@@ -143,13 +144,10 @@ function backwardBSDEsolver(
     X
     )
 
-    # X = sim.X                              # Simulated state and integrated state variable
-    # n_paths = size(X[1,:,1])[1]            # number of simulations
-    # T = sim.times[end]                     # maturity
-    # h = sim.times[2] -sim.times[1]         # step size (if equidistant)
-    # N = Int(T / h)                         # effective time steps
-    # inkr = randn(n_paths, N + 1) * sqrt(h) # Increments for simulations
-
+    n_paths = size(X[1,:,1])[1]       # number of simulations
+    T = sim.times[end]                # maturity
+    h = sim.times[2] -sim.times[1]    # step size (if equidistant)
+    N = Int(T / h)                    # effective time steps
     
     for tindex in N:-1:1
         t = tindex / T
@@ -159,7 +157,6 @@ function backwardBSDEsolver(
     end
 
     return uN
-
 end
 
 
@@ -183,27 +180,6 @@ function penalty(
 
 end
 
-model = createModel()
-n_paths = size(X[1,:,1])[1]
-n_times = sim.times  
-# h = sim.times[2] -sim.times[1] # step size (if equidistant)
-# N = Int(T / h) # eff
-
-inkr = sobol_brownian_increments(
-    length(DiffFusion.state_alias(model)),
-    n_paths,
-    length(n_times),
-)
-
-   
-
-    X = sim.X                              # Simulated state and integrated state variable
-    n_paths = size(X[1,:,1])[1]            # number of simulations
-    T = sim.times[end]                     # maturity
-    h = sim.times[2] -sim.times[1]         # step size (if equidistant)
-    N = Int(T / h)                         # effective time steps
-    inkr = randn(n_paths, N + 1) * sqrt(h) # Increments for simulations
-
 
 # training data as starting point for optimization, might have to be adjusted
 # swaption has expiration time 2.0. Therefore uN is beeing assumed to be time 2.
@@ -226,12 +202,12 @@ function trainNetwork(
     X_train = uN
     Y_train = uN
     data = [(X_train, Y_train)]
-    NNmodel = buildNeuralNetwork(2,2)
+    NNmodel = buildNeuralNetwork(2,1,[10,10])
     optimizer = ADAM(0.1)
 
     u0_beforeTraining = backwardBSDEsolver(NNmodel, uN, inkr, X)
 
-    epochs = 100
+    epochs = 2
     for epoch in 1:epochs
         Flux.train!((x,y) -> penalty(NNmodel, x, inkr, X) , Flux.params(NNmodel), data, optimizer)
     end
@@ -251,8 +227,9 @@ function Result()
 end
 
 
+# global definitions
+sim, X = createSimulation()
 Resulting = Result()
-
 
 
 
@@ -292,8 +269,6 @@ This object represents the Value process of the Bermudan and can by evaluated
 #     exercise_triggers::AbstractVector  
 # end
 
-
-
 function bermudan_swaption_leg(
     alias::String,
     bermudan_exercises::AbstractVector,
@@ -311,7 +286,8 @@ function bermudan_swaption_leg(
     end
 
     # Initialize BSDE solver
-    NNmodel, optimizer = initialize_bsde_solver()
+    NNmodel = buildNeuralNetwork(2,1,[10,10])
+    optimizer = ADAM(0.1)
 
     # Backward induction algorithm
     #
@@ -361,7 +337,8 @@ function BSDE_cashflows(
     )
 
     # Initialization of BSDE solver parameters and model
-    NNmodel = buildNeuralNetwork(2, 2) # Example neural network initialization
+    model = createModel()     
+    NNmodel = buildNeuralNetwork(2,1,[10,10]) # Example neural network initialization
     optimizer = ADAM(0.1) # Optimizer
     X = sim.X # Simulated state and integrated state variable
     S = size(X[1,:,1])[1] # number of simulations
@@ -423,12 +400,9 @@ function BSDE_cashflows(
 end
 
 
-
-
-
-
-
-
+#Comparison
+mean(optionValue(berm, 0))
+mean(BSDE_cashflows(berm, 0)[1])
 
 
 
@@ -530,9 +504,18 @@ berm = DiffFusion.bermudan_swaption_leg(
 
 
 
+function Delta_X(
+    f, #network approximate
+    )
 
+    timesVol = [  1.,  2.,  5., 10. ]
+    valuesVol = [ 50.,  60.,  70.,  80., ]' * 1.0e-4 
+    ts = DiffFusion.backward_flat_volatility("", timesVol, valuesVol);
 
-#Comparison
-mean(optionValue(berm, 0))
-mean(BSDE_cashflows(berm, 0)[1])
+    row = [DiffFusion.volatility(ts, time)[1] for time in 0:0.25:10]
+    Σ = [row ; row]
+
+    return inv(Σ * Σ') * f
+end
+
 
