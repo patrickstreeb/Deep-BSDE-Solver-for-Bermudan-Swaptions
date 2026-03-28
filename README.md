@@ -1,7 +1,7 @@
 
 # Deep BSDE Solver for Bermudan Swaptions under the Hull-White Model
 
-This project implements a deep learning-based backward BSDE solver for pricing Bermudan swaptions in the one-factor Hull-White short rate model, combining neural network approximation of the BSDE control process with an exact Hull-White Monte Carlo engine. The approach is inspired by [Wang et al. (2018)](https://ssrn.com/abstract=3214596) and formulated for the Hull-White interest rate framework.
+This project implements a deep learning-based backward BSDE solver for pricing Bermudan swaptions in the one-factor Hull-White short rate model, combining neural network approximation of the BSDE control process with an exact Hull-White Monte Carlo engine. The approach is inspired by [Wang et al. (2018)](https://ssrn.com/abstract=3214596) where a similar approach is carried out in the LIBOR-market model. Here we will use an interest rate model, the Hull-White model, to simulate the forward process of the FBSDE.
 
 A Bermudan swaption grants the holder the right to enter into an interest rate swap at one of several exercise dates $T_E \in \lbrace T_E^1, \ldots, T_E^n \rbrace$. The underlying swap exchanges fixed payments at dates $T_1, \ldots, T_n$ with day count fractions $\tau_i = T_i - T_{i-1}$ against floating payments at dates 
 
@@ -42,7 +42,7 @@ with $\xi_n \sim \mathcal{N}(0,1)$ and $f^M(0,t)$ the market-implied instantaneo
 
 On the grid, the BSDE discretizes to the backward recursion
 
-$$\widetilde{V}_{t_n}^\pi = \widetilde{V}_{t_{n+1}}^\pi - \widetilde{Z}_{t_n}^\pi-\Delta W_{t_n}, \qquad \widetilde{V}_{t_N}^\pi = \frac{H(T_E)}{B(T_E)}.$$
+$$\widetilde{V}_{t_n}^\pi = \widetilde{V}_{t_{n+1}}^\pi - \widetilde{Z}_{t_n}^\pi\Delta W_{t_n}, \qquad \widetilde{V}_{t_N}^\pi = \frac{H(T_E)}{B(T_E)}.$$
 
 The unknown control process $\widetilde{Z}_{t_n}^\pi$ is approximated by time-dependent neural networks $\varphi(\theta_n)$ at each grid point, so that
 
