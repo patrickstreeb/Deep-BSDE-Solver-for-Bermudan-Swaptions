@@ -35,7 +35,7 @@ The forward process is simulated exactly using the Gaussian transition density o
 $$\begin{aligned}
 r_{t_{n+1}} = r_{t_n} e^{-a\Delta t_n} &+ f^M(0,t_{n+1}) - f^M(0,t_n)e^{-a\Delta t_n} \\
 &+ \frac{\sigma^2}{2a^2}\left[(1-e^{-at_{n+1}})^2 - e^{-a\Delta t_n}(1-e^{-at_n})^2\right] \\
-&+ \sqrt{\frac{\sigma^2}{2a}(1-e^{-2a\Delta t_n})}-\xi_n
+&+ \sqrt{\frac{\sigma^2}{2a}(1-e^{-2a\Delta t_n})}\xi_n
 \end{aligned}$$
 
 with $\xi_n \sim \mathcal{N}(0,1)$ and $f^M(0,t)$ the market-implied instantaneous forward rate. The numeraire is approximated by the trapezoidal rule $s_{t_{n+1}} = s_{t_n} + \frac{1}{2}(r_{t_n}+r_{t_{n+1}})\Delta t_n$ with $B(t_n) = e^{s_{t_n}}$.
